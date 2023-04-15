@@ -4,80 +4,120 @@ using UnityEngine;
 
 public class Bullet : MonoBehaviour
 {
-    float horizontal = 0;
-    [HideInInspector]
-    public float Horizontal { get => horizontal; set => horizontal = value; }
+    public Animator animator;
     public float speed;
-    public float allFlyTime = 0.1f;
-    float flyTime = 0;
-    public float allDestroyTime;
-    float destoyTime;
-    Rigidbody2D newRigidbody;
+    public int  time_int;
+    public float attackwait;
+    public int time;
+    bool meet;
+    int waittime;
+
     // Start is called before the first frame update
     void Start()
     {
-        newRigidbody = GetComponent<Rigidbody2D>();
+        InvokeRepeating(nameof(Timer), 1, 1);
+        if (Player.Facingright!=true)
+        {
+            speed = -speed;
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (destoyTime >= allDestroyTime)
+         StartCoroutine(StartAttack());
+        GetComponent<Rigidbody2D>().velocity = new Vector2(speed, 0);
+        if (time_int == 0)
         {
-            Die();
+            animator.SetTrigger("BubbleBoom");
+            StartCoroutine(Boom());
+        }
+        if (this.gameObject.CompareTag("CollisionBubble")|| this.gameObject.CompareTag("Match 3"))
+        {
+            meet = true;
+        }
+        if (meet)
+        {
+            GetComponent<Rigidbody2D>().velocity = new Vector2(0, 0);
+            if (waittime - time_int <0 && waittime == 0 )
+            {
+                waittime = time_int;
+            }
+        }
+
+    }
+    public void Flip(bool Facingright)
+    {
+        if (Facingright== false)
+        {
+            speed = -speed ;
+        }
+    }
+
+    void OnTriggerEnter2D(Collider2D col)
+    {
+        if(col.gameObject.CompareTag("Bubble"))
+        {
+            Debug.Log("ªwªw¸I¼²");
+            this.transform.tag = "CollisionBubble";
+            col.transform.tag = "CollisionBubble";            
+        }
+        if(this.gameObject.CompareTag("CollisionBubble") && col.gameObject.CompareTag("CollisionBubble"))
+        {
+            if (waittime-time_int>0)
+            {
+             this.transform.tag = "Match 3";
+             //col.transform.tag = "Match 3";
+            }  
+        }
+        if (this.gameObject.CompareTag("Match 3")&&col.gameObject.CompareTag("CollisionBubble"))
+        {
+            Destroy(this.gameObject);
+            Destroy(col.gameObject);
+        }
+        if (col.gameObject.CompareTag("finish"))
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    IEnumerator StartAttack()
+    {
+        yield return new WaitForSeconds(attackwait);
+        animator.SetTrigger("FlyOut");
+        if (meet)
+        {
+            yield break;
+        }else
+        {
+            StartCoroutine(Float());
+            yield break;
+        }
+    }
+    IEnumerator Float()
+    {
+        yield return new WaitForSeconds(time);
+        if (meet)
+        {
+         yield break;
         }
         else
         {
-            destoyTime += Time.deltaTime;
+         animator.SetTrigger("Floating");
+         speed = 0;
+         GetComponent<Rigidbody2D>().velocity = new Vector2(0, 1);
+         yield break;
         }
-        Move();
     }
-    void Move()
+    void Timer()
     {
-        if (flyTime >= allFlyTime)
-        {
-            transform.Translate(0, 0, 0);
-            newRigidbody.constraints = RigidbodyConstraints2D.FreezeAll;
-        }
-        else
-        {
-            transform.Translate(horizontal * speed * Time.deltaTime, 0, 0);
-            flyTime += Time.deltaTime;
-        }
+        time_int -= 1;
+       
     }
-    void OnCollisionEnter2D(Collision2D other)
+    IEnumerator Boom()
     {
-        if (other.gameObject.tag == "Bullet" && this.gameObject.tag == "Bullet")
-        {
-            flyTime = allFlyTime;
-            other.gameObject.tag = "MeetBullet";
-            this.gameObject.tag = "MeetBullet";
-        }
-        else if (other.gameObject.tag == "MeetBullet"&&this.gameObject.tag == "Bullet")
-        {
-            flyTime = allFlyTime;
-            this.gameObject.tag = "CanThreeDelete";
-        }
+        yield return new WaitForSeconds(0.5f);
+        Destroy(gameObject);
     }
-    void OnCollisionStay2D(Collision2D other)
-    {
-        switch (other.gameObject.tag)
-        {
-            case "CanThreeDelete":
-                {
-                    this.gameObject.tag = "CanThreeDelete";
-                    GameManager.Instance.bullets.Add(this);
-                    break;
-                }
-            default:
-                {
-                    break;
-                }
-        }
-    }
-    public void Die()
-    {
-        Destroy(this.gameObject);
-        GameManager.Instance.bullets.Remove(this);
-    }
+    
 }

@@ -1,99 +1,98 @@
+using UnityEngine;
+using UnityEngine.Events;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 
 public class Player : MonoBehaviour
 {
     public float speed;
-    float bulletHorizontal=1;
-    [HideInInspector]
+    public float jumpspeed;
+    public float jumplimit;
     public GameObject Bullet;
-    [HideInInspector]
-    public GameObject Knife;
-    [HideInInspector]
-    public Transform KnifePosition;
-    public float JumpSpeed;
-    bool canJump=true;
-    Rigidbody2D rigidBody;
-    Vector3 eulerPlayer = new Vector3(0,180,0);
-    [HideInInspector]
-    public Transform bulletPosition;
+    public float fireRate = 0.5f;
+    Rigidbody2D rb2d;
+    static public bool Facingright;
+    int jumpcount;
+    public Animator animator;
+    public int m_sec;
+    [Header("Events")]
+    [Space]
+    public UnityEvent OnLandEvent;
     // Start is called before the first frame update
-    void Awake()
+    void Start()
     {
-        rigidBody=GetComponent<Rigidbody2D>();
+        rb2d = GetComponent<Rigidbody2D>();
+        jumpcount = 0;
+        Facingright = true;
     }
 
     // Update is called once per frame
     void Update()
     {
         Move();
-        Shoot();
-        EnterBattle();
-        Jump();
+        Run();
+        Fall();
+        Falltwo();
     }
 
     void Move()
-    {     
-        float horizontal = 0 ; 
-        if(Input.GetKey(KeyCode.A))
+    {  
+        if (Input.GetButtonDown("Jump") && jumpcount <2)
         {
-            horizontal = -1;   
-            bulletHorizontal = -1;  
-            eulerPlayer = new Vector3(0,0,0);          
+            rb2d.velocity = new Vector2 (rb2d.velocity.x, jumpspeed );
+            animator.SetBool("IsJumping", true);
+            if (Input.GetButtonDown("Jump") && jumpcount>=1)
+            {
+                animator.SetBool("IsJumpingII", true);
+                animator.SetBool("IsJumping", false);
+            }
+            jumpcount += 1;
         }
-        else if(Input.GetKey(KeyCode.D))
+        if (Input.GetAxisRaw("Horizontal") > 0 && Facingright == false|| Input.GetAxisRaw("Horizontal") < 0 && Facingright)
         {
-            horizontal = 1;
-            bulletHorizontal = 1;
-            eulerPlayer = new Vector3(0,180,0);
-        }
-        transform.Translate(new Vector2(horizontal*speed*Time.deltaTime,0),Space.World);
-        transform.rotation = Quaternion.Euler(eulerPlayer);
+            Flip();
+        }  
+        
+        rb2d.velocity = new Vector2(speed * Input.GetAxisRaw("Horizontal"), rb2d.velocity.y); //²¾°Ê        
+    }
 
-    }
-    void Jump()
+   void OnCollisionEnter2D (Collision2D col)
     {
-        if((Input.GetKeyDown(KeyCode.W)||Input.GetKeyDown(KeyCode.Space))&&canJump)
+       if (col.gameObject.CompareTag("ground"))
         {
-            rigidBody.velocity = new Vector2(rigidBody.velocity.x,JumpSpeed);
+            OnLandEvent.Invoke();
+            jumpcount = 0;
+         }
+    }
+    void Flip()
+    {
+        Facingright = !Facingright;
+        transform.Rotate(0,180,0);
+    }
+    void Run()
+    {
+        animator.SetFloat("Speed", Mathf.Abs(Input.GetAxisRaw("Horizontal")));
+    }
+    public void OnLanding () 
+    {
+        animator.SetBool("FallingII", false);
+        animator.SetBool("Falling", false);
+    }
+    void Fall()
+    {
+        if (rb2d.velocity.y < 0.0f)
+        {
+            animator.SetBool("IsJumping", false);
+            animator.SetBool("Falling", true);
         }
     }
-    void Shoot()
+    void Falltwo()
     {
-        if(Input.GetKeyDown(KeyCode.J))
+        if (rb2d.velocity.y < 0.0f&& jumpcount >= 2)
         {
-            Bullet bullet = Instantiate(Bullet,bulletPosition.position,Quaternion.identity).GetComponent<Bullet>();
-            bullet.Horizontal = bulletHorizontal;
+            animator.SetBool("IsJumping", false);
+            animator.SetBool("IsJumpingII", false);
+            animator.SetBool("FallingII", true);
         }
-    }
-    void EnterBattle()
-    {
-        if(Input.GetKeyDown(KeyCode.K))
-        {
-            Instantiate(Knife,KnifePosition.position,Knife.transform.rotation);
-        }
-    }
-    void OnCollisionEnter2D(Collision2D other) 
-    {
-        switch(other.gameObject.tag)
-        {
-            case "Floor":
-            {
-                canJump=true;
-                break;
-            }          
-        }        
-    }
-    void OnCollisionExit2D(Collision2D other) 
-    {
-        switch(other.gameObject.tag)
-        {
-            case "Floor":
-            {
-                canJump=false;
-                break;
-            }          
-        }      
     }
 }
