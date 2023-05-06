@@ -43,4 +43,12 @@ public class Playerattack : MonoBehaviour
         collider2D.enabled = false;
 
     }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.gameObject.CompareTag("Enemy"))
+        {
+            other.GetComponent<Enemy>().EnemyTakeDamage(damage);
+        }
+    }
 }

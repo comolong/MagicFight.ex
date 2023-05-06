@@ -11,10 +11,12 @@ public class Bullet : MonoBehaviour
     public int time;
     bool meet;
     int waittime;
+    List<GameObject> bullets = new List<GameObject>();
 
     // Start is called before the first frame update
     void Start()
     {
+        bullets.Add(this.gameObject);
         InvokeRepeating(nameof(Timer), 1, 1);
         if (Player.Facingright!=true)
         {
@@ -44,6 +46,13 @@ public class Bullet : MonoBehaviour
                 waittime = time_int;
             }
         }
+        if (bullets.Count >= 3)
+        {
+            for (int i = bullets.Count - 1; i >= 0; i--)
+            {
+                Destroy(bullets[i]);
+            }
+        }
 
     }
     public void Flip(bool Facingright)
@@ -60,20 +69,17 @@ public class Bullet : MonoBehaviour
         {
             Debug.Log("ªwªw¸I¼²");
             this.transform.tag = "CollisionBubble";
-            col.transform.tag = "CollisionBubble";            
+            col.transform.tag = "CollisionBubble";
+            bullets.Add(col.gameObject);
         }
         if(this.gameObject.CompareTag("CollisionBubble") && col.gameObject.CompareTag("CollisionBubble"))
         {
             if (waittime-time_int>0)
             {
              this.transform.tag = "Match 3";
+             bullets.Add(col.gameObject);
              //col.transform.tag = "Match 3";
             }  
-        }
-        if (this.gameObject.CompareTag("Match 3")&&col.gameObject.CompareTag("CollisionBubble"))
-        {
-            Destroy(this.gameObject);
-            Destroy(col.gameObject);
         }
         if (col.gameObject.CompareTag("finish"))
         {
